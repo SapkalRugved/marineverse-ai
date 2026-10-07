@@ -38,9 +38,14 @@ dist/
 data/raw/*
 data/processed/*
 
-# Keep directory placeholders
+# Keep main directory placeholders
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+
+# Keep the ports raw-data directory but ignore downloaded port datasets
+!data/raw/ports/
+data/raw/ports/*
+!data/raw/ports/.gitkeep
 
 # Logs
 *.log
