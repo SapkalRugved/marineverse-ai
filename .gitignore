@@ -47,6 +47,11 @@ data/processed/*
 data/raw/ports/*
 !data/raw/ports/.gitkeep
 
+# Keep the weather raw-data directory but ignore downloaded datasets
+!data/raw/weather/
+data/raw/weather/*
+!data/raw/weather/.gitkeep
+
 # Logs
 *.log
 logs/
