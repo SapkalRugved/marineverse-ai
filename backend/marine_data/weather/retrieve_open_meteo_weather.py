@@ -72,14 +72,13 @@ def create_http_session() -> requests.Session:
     return session
 
 
-def read_port_locations() -> list[dict[str, Any]]:
-    """Read OSM locations classified as ports from PostgreSQL."""
-    print("Connecting to PostgreSQL...")
-
-    with connect_to_database() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(PORT_LOCATIONS_SQL)
-            rows = cursor.fetchall()
+def read_port_locations_from_connection(
+    connection: psycopg.Connection,
+) -> list[dict[str, Any]]:
+    """Read OSM port locations using an existing connection."""
+    with connection.cursor() as cursor:
+        cursor.execute(PORT_LOCATIONS_SQL)
+        rows = cursor.fetchall()
 
     locations = [
         {
@@ -97,6 +96,14 @@ def read_port_locations() -> list[dict[str, Any]]:
         )
 
     return locations
+
+
+def read_port_locations() -> list[dict[str, Any]]:
+    """Read OSM port locations using a new database connection."""
+    print("Connecting to PostgreSQL...")
+
+    with connect_to_database() as connection:
+        return read_port_locations_from_connection(connection)
 
 
 def split_batches(
