@@ -1,0 +1,62 @@
+{
+  "version": 0.6,
+  "generator": "MarineVerse test fixture",
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": 18.949,
+      "lon": 72.838,
+      "tags": {
+        "name": "  Mumbai Test Marina  ",
+        "industrial": "port",
+        "leisure": "marina",
+        "harbour": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1002,
+      "center": {
+        "lat": 15.401,
+        "lon": 73.801
+      },
+      "tags": {
+        "name": "Goa Ferry Terminal",
+        "amenity": "ferry_terminal"
+      }
+    },
+    {
+      "type": "relation",
+      "id": 1003,
+      "center": {
+        "lat": 9.970,
+        "lon": 76.270
+      },
+      "tags": {
+        "name": "Kochi Fishing Harbour",
+        "seamark:harbour:category": "fishing_harbour"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1004,
+      "lat": 13.080,
+      "lon": 80.290,
+      "tags": {
+        "name": "Chennai Test Port",
+        "industrial": "port"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001,
+      "lat": 18.949,
+      "lon": 72.838,
+      "tags": {
+        "name": "Duplicate Mumbai Record",
+        "leisure": "marina"
+      }
+    }
+  ]
+}
