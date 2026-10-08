@@ -52,6 +52,11 @@ data/raw/ports/*
 data/raw/weather/*
 !data/raw/weather/.gitkeep
 
+# Keep the ocean raw-data directory but ignore downloaded ocean datasets
+!data/raw/ocean/
+data/raw/ocean/*
+!data/raw/ocean/.gitkeep
+
 # Logs
 *.log
 logs/
