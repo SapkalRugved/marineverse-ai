@@ -1,4 +1,4 @@
-"""Load validated Copernicus ocean records into PostgreSQL/PostGIS."""
+"""Bulk-load validated Copernicus ocean records into PostGIS."""
 
 from __future__ import annotations
 
@@ -10,30 +10,83 @@ from psycopg import Connection
 from backend.marine_data.ocean.transformer import OceanRecord
 
 
+CREATE_STAGE_SQL = """
+CREATE TEMP TABLE ocean_conditions_stage (
+    valid_time timestamp with time zone NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    depth_m real NOT NULL,
+    current_u_mps real NOT NULL,
+    current_v_mps real NOT NULL,
+    current_speed_mps real NOT NULL,
+    current_direction_deg real NOT NULL,
+    sea_surface_temperature_c real NOT NULL,
+    wave_height_m real NOT NULL,
+    wave_direction_deg real NOT NULL,
+    wave_period_s real NOT NULL,
+    is_forecast boolean NOT NULL,
+    source character varying(50) NOT NULL,
+    source_dataset character varying(150) NOT NULL,
+    ingested_at timestamp with time zone NOT NULL,
+    PRIMARY KEY (
+        source,
+        source_dataset,
+        valid_time,
+        latitude,
+        longitude,
+        depth_m,
+        is_forecast
+    )
+) ON COMMIT DROP;
+"""
+
+COPY_STAGE_SQL = """
+COPY ocean_conditions_stage (
+    valid_time,
+    latitude,
+    longitude,
+    depth_m,
+    current_u_mps,
+    current_v_mps,
+    current_speed_mps,
+    current_direction_deg,
+    sea_surface_temperature_c,
+    wave_height_m,
+    wave_direction_deg,
+    wave_period_s,
+    is_forecast,
+    source,
+    source_dataset,
+    ingested_at
+)
+FROM STDIN;
+"""
+
 UPDATE_OCEAN_SQL = """
-UPDATE ocean_conditions
+UPDATE ocean_conditions AS target
 SET
     location = ST_SetSRID(
-        ST_MakePoint(%(longitude)s, %(latitude)s),
+        ST_MakePoint(stage.longitude, stage.latitude),
         4326
     )::geography,
-    current_u_mps = %(current_u_mps)s,
-    current_v_mps = %(current_v_mps)s,
-    current_speed_mps = %(current_speed_mps)s,
-    current_direction_deg = %(current_direction_deg)s,
-    sea_surface_temperature_c = %(sea_surface_temperature_c)s,
-    wave_height_m = %(wave_height_m)s,
-    wave_direction_deg = %(wave_direction_deg)s,
-    wave_period_s = %(wave_period_s)s,
-    ingested_at = %(ingested_at)s
-WHERE source = %(source)s
-  AND source_dataset = %(source_dataset)s
-  AND valid_time = %(valid_time)s
-  AND latitude = %(latitude)s
-  AND longitude = %(longitude)s
-  AND depth_m = %(depth_m)s
-  AND is_forecast = %(is_forecast)s
-RETURNING ocean_id;
+    current_u_mps = stage.current_u_mps,
+    current_v_mps = stage.current_v_mps,
+    current_speed_mps = stage.current_speed_mps,
+    current_direction_deg = stage.current_direction_deg,
+    sea_surface_temperature_c =
+        stage.sea_surface_temperature_c,
+    wave_height_m = stage.wave_height_m,
+    wave_direction_deg = stage.wave_direction_deg,
+    wave_period_s = stage.wave_period_s,
+    ingested_at = stage.ingested_at
+FROM ocean_conditions_stage AS stage
+WHERE target.source = stage.source
+  AND target.source_dataset = stage.source_dataset
+  AND target.valid_time = stage.valid_time
+  AND target.latitude = stage.latitude
+  AND target.longitude = stage.longitude
+  AND target.depth_m = stage.depth_m
+  AND target.is_forecast = stage.is_forecast;
 """
 
 INSERT_OCEAN_SQL = """
@@ -56,29 +109,39 @@ INSERT INTO ocean_conditions (
     source_dataset,
     ingested_at
 )
-VALUES (
-    %(valid_time)s,
-    %(latitude)s,
-    %(longitude)s,
+SELECT
+    stage.valid_time,
+    stage.latitude,
+    stage.longitude,
     ST_SetSRID(
-        ST_MakePoint(%(longitude)s, %(latitude)s),
+        ST_MakePoint(stage.longitude, stage.latitude),
         4326
     )::geography,
-    %(depth_m)s,
-    %(current_u_mps)s,
-    %(current_v_mps)s,
-    %(current_speed_mps)s,
-    %(current_direction_deg)s,
-    %(sea_surface_temperature_c)s,
-    %(wave_height_m)s,
-    %(wave_direction_deg)s,
-    %(wave_period_s)s,
-    %(is_forecast)s,
-    %(source)s,
-    %(source_dataset)s,
-    %(ingested_at)s
-)
-RETURNING ocean_id;
+    stage.depth_m,
+    stage.current_u_mps,
+    stage.current_v_mps,
+    stage.current_speed_mps,
+    stage.current_direction_deg,
+    stage.sea_surface_temperature_c,
+    stage.wave_height_m,
+    stage.wave_direction_deg,
+    stage.wave_period_s,
+    stage.is_forecast,
+    stage.source,
+    stage.source_dataset,
+    stage.ingested_at
+FROM ocean_conditions_stage AS stage
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM ocean_conditions AS target
+    WHERE target.source = stage.source
+      AND target.source_dataset = stage.source_dataset
+      AND target.valid_time = stage.valid_time
+      AND target.latitude = stage.latitude
+      AND target.longitude = stage.longitude
+      AND target.depth_m = stage.depth_m
+      AND target.is_forecast = stage.is_forecast
+);
 """
 
 
@@ -86,55 +149,46 @@ class OceanDatabaseLoadError(RuntimeError):
     """Raised when validated ocean records cannot be loaded."""
 
 
-def record_to_parameters(
-    record: OceanRecord,
-) -> dict[str, Any]:
-    """Convert one ocean record into SQL parameters."""
-    return {
-        "valid_time": record.valid_time,
-        "latitude": record.latitude,
-        "longitude": record.longitude,
-        "depth_m": record.depth_m,
-        "current_u_mps": record.current_u_mps,
-        "current_v_mps": record.current_v_mps,
-        "current_speed_mps": record.current_speed_mps,
-        "current_direction_deg": record.current_direction_deg,
-        "sea_surface_temperature_c": (
-            record.sea_surface_temperature_c
-        ),
-        "wave_height_m": record.wave_height_m,
-        "wave_direction_deg": record.wave_direction_deg,
-        "wave_period_s": record.wave_period_s,
-        "is_forecast": record.is_forecast,
-        "source": record.source,
-        "source_dataset": record.source_dataset,
-        "ingested_at": record.ingested_at,
-    }
+def record_to_row(record: OceanRecord) -> tuple[Any, ...]:
+    """Convert one ocean record into a PostgreSQL COPY row."""
+    return (
+        record.valid_time,
+        record.latitude,
+        record.longitude,
+        record.depth_m,
+        record.current_u_mps,
+        record.current_v_mps,
+        record.current_speed_mps,
+        record.current_direction_deg,
+        record.sea_surface_temperature_c,
+        record.wave_height_m,
+        record.wave_direction_deg,
+        record.wave_period_s,
+        record.is_forecast,
+        record.source,
+        record.source_dataset,
+        record.ingested_at,
+    )
 
 
 def load_ocean_records(
     connection: Connection,
     records: Sequence[OceanRecord],
 ) -> int:
-    """Update or insert validated ocean records."""
+    """Bulk update or insert validated ocean records."""
     if not records:
         raise OceanDatabaseLoadError(
             "No validated ocean records to load."
         )
 
     with connection.cursor() as cursor:
-        for record in records:
-            parameters = record_to_parameters(record)
+        cursor.execute(CREATE_STAGE_SQL)
 
-            cursor.execute(UPDATE_OCEAN_SQL, parameters)
-            existing_row = cursor.fetchone()
+        with cursor.copy(COPY_STAGE_SQL) as copy:
+            for record in records:
+                copy.write_row(record_to_row(record))
 
-            if existing_row is None:
-                cursor.execute(INSERT_OCEAN_SQL, parameters)
-
-                if cursor.fetchone() is None:
-                    raise OceanDatabaseLoadError(
-                        "Ocean record was not inserted."
-                    )
+        cursor.execute(UPDATE_OCEAN_SQL)
+        cursor.execute(INSERT_OCEAN_SQL)
 
     return len(records)
