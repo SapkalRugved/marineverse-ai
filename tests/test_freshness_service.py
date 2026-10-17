@@ -45,7 +45,7 @@ class FreshnessServiceTests(unittest.TestCase):
             {
                 "dataset": "ocean",
                 "latest_valid_time": (
-                    CHECKED_AT - timedelta(hours=7)
+                    CHECKED_AT - timedelta(hours=10)
                 ),
                 "latest_ingested_at": CHECKED_AT,
                 "last_successful_run_at": CHECKED_AT,

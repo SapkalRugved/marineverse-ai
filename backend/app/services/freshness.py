@@ -14,7 +14,7 @@ from backend.marine_data.database import connect_to_database
 FRESHNESS_THRESHOLDS_SECONDS = {
     "ports": 30 * 24 * 60 * 60,
     "weather": 30 * 60,
-    "ocean": 6 * 60 * 60,
+    "ocean": 9 * 60 * 60,
 }
 
 SELECT_FRESHNESS_SQL = """
