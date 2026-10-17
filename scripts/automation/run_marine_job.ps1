@@ -88,12 +88,20 @@ try {
         [DateTimeOffset]::Now.ToString("o")
     )
 
+    $previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+
+try {
     & $pythonExecutable @moduleArguments 2>&1 |
         ForEach-Object {
             Write-Log $_.ToString()
         }
 
     $pythonExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
 
     if ($pythonExitCode -ne 0) {
         throw "MarineVerse job exited with code $pythonExitCode."
