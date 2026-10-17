@@ -7,6 +7,7 @@ from backend.app.api.health import (
     router as health_router,
 )
 from backend.app.api.ports import router as ports_router
+from backend.app.api.weather import router as weather_router
 
 
 app = FastAPI(
@@ -19,3 +20,4 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(ports_router)
+app.include_router(weather_router)
