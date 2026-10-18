@@ -60,3 +60,8 @@ data/raw/ocean/*
 # Logs
 *.log
 logs/
+
+# Keep the AIS raw-data directory but ignore captured stream data
+!data/raw/ais/
+data/raw/ais/*
+!data/raw/ais/.gitkeep
