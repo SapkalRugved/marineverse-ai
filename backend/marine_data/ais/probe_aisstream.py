@@ -14,7 +14,7 @@ from typing import Any
 from dotenv import load_dotenv
 from websockets.exceptions import WebSocketException
 from websockets.sync.client import connect
-
+from backend.marine_data.storage import resolve_data_directory
 
 STREAM_URL = "wss://stream.aisstream.io/v0/stream"
 SOURCE = "aisstream"
@@ -113,13 +113,22 @@ def retain_capture(
     completed_at: datetime,
     duration_seconds: int,
     events: list[dict[str, Any]],
+    output_directory: Path | None = None,
 ) -> Path:
-    """Retain the bounded probe result atomically without credentials."""
-    RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    """Retain a bounded AIS capture atomically without credentials."""
+
+    if output_directory is not None:
+        target_directory = Path(output_directory)
+    elif os.getenv("MARINEVERSE_DATA_DIR") is not None:
+        target_directory = resolve_data_directory("raw", "ais")
+    else:
+        target_directory = RAW_DIRECTORY
+
+    target_directory.mkdir(parents=True, exist_ok=True)
 
     timestamp = started_at.strftime("%Y%m%dT%H%M%SZ")
     output_path = (
-        RAW_DIRECTORY
+        target_directory
         / f"aisstream_india_probe_{timestamp}.json"
     )
     temporary_path = output_path.with_suffix(".json.tmp")
@@ -159,8 +168,8 @@ def retain_capture(
         output_file.write("\n")
 
     temporary_path.replace(output_path)
-    return output_path
 
+    return output_path
 
 def capture_events(
     *,

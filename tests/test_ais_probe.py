@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -147,6 +148,62 @@ class AisProbeTests(unittest.TestCase):
             payload_text,
         )
 
+
+    def test_environment_data_root_is_used(self) -> None:
+        """Store AIS captures under the configured external data root."""
+
+        started_at = datetime(
+            2026, 10, 18, 4, 30, tzinfo=timezone.utc
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(
+                os.environ,
+                {"MARINEVERSE_DATA_DIR": directory},
+            ):
+                output = retain_capture(
+                    started_at=started_at,
+                    completed_at=started_at,
+                    duration_seconds=60,
+                    events=[],
+                )
+
+            expected = (
+                Path(directory).resolve()
+                / "raw"
+                / "ais"
+                / "aisstream_india_probe_20261018T043000Z.json"
+            )
+
+            self.assertEqual(output, expected)
+            self.assertTrue(output.exists())
+
+    def test_explicit_output_directory_overrides_environment(self) -> None:
+        """Explicit capture directories take precedence."""
+
+        started_at = datetime(
+            2026, 10, 18, 4, 30, tzinfo=timezone.utc
+        )
+
+        with tempfile.TemporaryDirectory() as environment_root:
+            with tempfile.TemporaryDirectory() as explicit_directory:
+                with patch.dict(
+                    os.environ,
+                    {"MARINEVERSE_DATA_DIR": environment_root},
+                ):
+                    output = retain_capture(
+                        started_at=started_at,
+                        completed_at=started_at,
+                        duration_seconds=60,
+                        events=[],
+                        output_directory=Path(explicit_directory),
+                    )
+
+                self.assertEqual(
+                    output.parent,
+                    Path(explicit_directory),
+                )
+                self.assertTrue(output.exists())
 
 if __name__ == "__main__":
     unittest.main()
