@@ -13,7 +13,7 @@ provide operational evidence.
 
 | Dataset | Schedule | Retention | Freshness threshold |
 |---|---:|---:|---:|
-| AIS | Every 10 minutes | Not automatically deleted | Not yet exposed |
+| AIS | Every 10 minutes | Not automatically deleted | 30 minutes |
 | Weather | Every 15 minutes | 30 days | 30 minutes |
 | Ocean | Every 6 hours | 14 days | 9 hours |
 | Ports | Manual or monthly | Not automatically deleted | 30 days |
@@ -207,8 +207,8 @@ Possible dataset states are:
 - `stale`
 - `missing`
 
-The current freshness endpoint does not yet include AIS. AIS freshness can be
-checked using the newest `vessel_positions.observed_at` value.
+The freshness endpoint includes AIS using the newest `vessel_positions.observed_at`
+timestamp. AIS is fresh when that position is no more than 30 minutes old.
 
 ## Logs
 
