@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from backend.marine_data.database import connect_to_database
+from backend.marine_data.storage import resolve_data_directory
 
 
 API_URL = "https://api.open-meteo.com/v1/forecast"
@@ -201,15 +203,24 @@ def retrieve_weather(
 def retain_raw_response(
     locations: list[dict[str, Any]],
     records: list[dict[str, Any]],
+    *,
+    output_directory: Path | None = None,
 ) -> Path:
     """Write the complete retrieval envelope atomically."""
     retrieved_at = datetime.now(timezone.utc)
     timestamp = retrieved_at.strftime("%Y%m%dT%H%M%SZ")
 
-    RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    if output_directory is not None:
+        target_directory = Path(output_directory)
+    elif os.getenv("MARINEVERSE_DATA_DIR") is not None:
+        target_directory = resolve_data_directory("raw", "weather")
+    else:
+        target_directory = RAW_DIRECTORY
+
+    target_directory.mkdir(parents=True, exist_ok=True)
 
     output_path = (
-        RAW_DIRECTORY
+        target_directory
         / f"open_meteo_current_ports_{timestamp}.json"
     )
     temporary_path = output_path.with_suffix(".json.tmp")
