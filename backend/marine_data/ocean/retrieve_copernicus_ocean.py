@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Sequence
+from backend.marine_data.storage import resolve_data_directory
 
 import copernicusmarine
 
@@ -22,6 +24,19 @@ WAVE_VARIABLES = ("VHM0", "VMDR", "VTM02")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 RAW_DIRECTORY = PROJECT_ROOT / "data" / "raw" / "ocean"
+
+def resolve_ocean_raw_directory(
+    output_directory: Path | None = None,
+) -> Path:
+    """Choose the ocean raw directory without creating it."""
+
+    if output_directory is not None:
+        return Path(output_directory).expanduser().resolve()
+
+    if os.getenv("MARINEVERSE_DATA_DIR") is not None:
+        return resolve_data_directory("raw", "ocean")
+
+    return RAW_DIRECTORY
 
 DEFAULT_MIN_LONGITUDE = 65.0
 DEFAULT_MAX_LONGITUDE = 100.0
@@ -141,11 +156,30 @@ def retain_manifest(
     maximum_longitude: float,
     minimum_latitude: float,
     maximum_latitude: float,
+    output_directory: Path | None = None,
 ) -> Path:
     """Retain metadata describing the two raw Copernicus subsets."""
+    physics_directory = physics_path.parent.resolve()
+    wave_directory = wave_path.parent.resolve()
+
+    if physics_directory != wave_directory:
+        raise ValueError(
+            "Physics and wave NetCDF files must share a directory."
+        )
+
+    target_directory = (
+        Path(output_directory).expanduser().resolve()
+        if output_directory is not None
+        else physics_directory
+    )
+
+    if target_directory != physics_directory:
+        raise ValueError(
+            "Ocean manifest must be stored beside its NetCDF files."
+        )
     timestamp = format_timestamp(valid_time)
     output_path = (
-        RAW_DIRECTORY
+        target_directory
         / f"copernicus_ocean_india_{timestamp}_manifest.json"
     )
     temporary_path = output_path.with_suffix(".json.tmp")
@@ -244,14 +278,15 @@ def main() -> int:
         retrieved_at = datetime.now(timezone.utc)
         timestamp = format_timestamp(valid_time)
 
-        RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+        target_directory = resolve_ocean_raw_directory()
+        target_directory.mkdir(parents=True, exist_ok=True)
 
         physics_path = (
-            RAW_DIRECTORY
+            target_directory
             / f"copernicus_phy_india_{timestamp}.nc"
         )
         wave_path = (
-            RAW_DIRECTORY
+            target_directory
             / f"copernicus_wav_india_{timestamp}.nc"
         )
 
