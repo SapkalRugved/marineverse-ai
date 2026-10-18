@@ -57,6 +57,40 @@ def get_connection_parameters(
     if password:
         parameters["password"] = password
 
+    sslmode = os.getenv("PGSSLMODE")
+    if sslmode:
+        allowed_modes = {
+            "disable",
+            "allow",
+            "prefer",
+            "require",
+            "verify-ca",
+            "verify-full",
+        }
+        if sslmode not in allowed_modes:
+            raise ValueError("Invalid PGSSLMODE value.")
+        parameters["sslmode"] = sslmode
+
+    timeout = os.getenv("PGCONNECT_TIMEOUT")
+    if timeout is not None:
+        try:
+            timeout_seconds = int(timeout)
+        except ValueError as exc:
+            raise ValueError(
+                "PGCONNECT_TIMEOUT must be a positive integer."
+            ) from exc
+
+        if timeout_seconds <= 0:
+            raise ValueError(
+                "PGCONNECT_TIMEOUT must be a positive integer."
+            )
+
+        parameters["connect_timeout"] = timeout_seconds
+
+    options = os.getenv("PGOPTIONS")
+    if options:
+        parameters["options"] = options
+
     return parameters
 
 
