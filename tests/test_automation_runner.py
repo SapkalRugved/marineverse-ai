@@ -132,6 +132,29 @@ class AutomationRunnerTests(unittest.TestCase):
         self.assertEqual(result, 7)
         release_mock.assert_called_once()
 
+    def test_ais_pipeline_configuration(self) -> None:
+        """Configure AIS with its module and dedicated lock."""
+        definition = PIPELINES["ais"]
+
+        self.assertEqual(definition.name, "ais")
+        self.assertEqual(
+            definition.module,
+            (
+                "backend.marine_data.ais."
+                "run_aisstream_pipeline"
+            ),
+        )
+        self.assertEqual(definition.advisory_lock_id, 17003)
+
+        lock_ids = [
+            pipeline.advisory_lock_id
+            for pipeline in PIPELINES.values()
+        ]
+        self.assertEqual(
+            len(lock_ids),
+            len(set(lock_ids)),
+        )
+
     def test_unknown_pipeline_is_rejected(self) -> None:
         """Reject an unconfigured pipeline name."""
         with self.assertRaises(ScheduledPipelineError):
