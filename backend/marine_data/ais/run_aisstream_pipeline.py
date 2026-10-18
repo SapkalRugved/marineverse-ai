@@ -163,7 +163,7 @@ def main() -> int:
             return 0
 
         payload = read_capture(capture_path)
-	
+
         transformation_result = transform_capture(
             payload,
             ingested_at=capture_completed_at,
