@@ -40,6 +40,58 @@ Marine data sources → ingestion → raw retention → validation and normaliza
 - Dataset freshness monitoring
 - Protected Windows pipeline automation
 
+## Runtime data storage
+
+MarineVerse supports configurable raw-data storage for AISStream,
+Open-Meteo weather, Copernicus ocean, and OpenStreetMap ports.
+
+Storage directory precedence:
+
+1. Explicit output directory supplied by the caller, where supported.
+2. `MARINEVERSE_DATA_DIR` environment variable.
+3. Existing repository-relative `data/` directory.
+
+For Windows PowerShell, configure external storage for the current session:
+
+```powershell
+$env:MARINEVERSE_DATA_DIR = "C:\MarineVerseData"
+```
+
+Or add this line to your local `.env`:
+
+```dotenv
+MARINEVERSE_DATA_DIR=C:\MarineVerseData
+```
+
+The variable is optional. Leave it completely unset to preserve
+the existing repository storage behavior.
+
+Expected external structure:
+
+```text
+C:\MarineVerseData\
+└── raw\
+    ├── ais\
+    ├── weather\
+    ├── ocean\
+    └── ports\
+```
+
+The pipelines create required dataset directories when writing.
+
+Copernicus physics NetCDF files, wave NetCDF files, and their JSON
+manifest must remain in the same directory because the transformer
+resolves NetCDF filenames relative to the manifest.
+
+Existing files are not automatically moved. Configure external storage
+only after planning any necessary migration.
+
+Do not commit raw datasets, `.env`, credentials, or generated logs.
+
+This storage configuration does not change PostgreSQL/PostGIS schemas
+or existing FastAPI endpoint contracts.
+
+
 ## Documentation
 
 - [Ports ingestion](docs/ports-ingestion.md)

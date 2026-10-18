@@ -7,9 +7,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-
+import os
 import requests
-
+from backend.marine_data.storage import resolve_data_directory
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 REQUEST_TIMEOUT_SECONDS = (15, 240)
@@ -79,12 +79,22 @@ def request_osm_ports(query: str) -> dict[str, Any]:
     return payload
 
 
+
 def build_output_path(
-    output_directory: Path = RAW_OUTPUT_DIRECTORY,
+    output_directory: Path | None = None,
 ) -> Path:
-    """Create a timestamped path for one retained raw response."""
+    """Create a timestamped path using configured raw storage."""
+
+    if output_directory is not None:
+        target_directory = Path(output_directory)
+    elif os.getenv("MARINEVERSE_DATA_DIR") is not None:
+        target_directory = resolve_data_directory("raw", "ports")
+    else:
+        target_directory = RAW_OUTPUT_DIRECTORY
+
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return output_directory / f"osm_ports_india_{timestamp}.json"
+
+    return target_directory / f"osm_ports_india_{timestamp}.json"
 
 
 def retain_raw_response(

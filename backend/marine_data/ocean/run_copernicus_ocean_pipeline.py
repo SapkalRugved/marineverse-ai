@@ -36,6 +36,7 @@ from backend.marine_data.ocean.retrieve_copernicus_ocean import (
     retrieve_subset,
     select_default_valid_time,
     validate_bounds,
+    resolve_ocean_raw_directory,
 )
 from backend.marine_data.ocean.transformer import (
     OceanTransformationError,
@@ -110,14 +111,15 @@ def main() -> int:
         timestamp = format_timestamp(valid_time)
         retrieved_at = datetime.now(timezone.utc)
 
-        RAW_DIRECTORY.mkdir(parents=True, exist_ok=True)
+        target_directory = resolve_ocean_raw_directory()
+        target_directory.mkdir(parents=True, exist_ok=True)
 
         physics_path = (
-            RAW_DIRECTORY
+            target_directory
             / f"copernicus_phy_india_{timestamp}.nc"
         )
         wave_path = (
-            RAW_DIRECTORY
+            target_directory
             / f"copernicus_wav_india_{timestamp}.nc"
         )
 
