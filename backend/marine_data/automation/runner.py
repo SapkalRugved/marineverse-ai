@@ -44,6 +44,14 @@ PIPELINES = {
         ),
         advisory_lock_id=17002,
     ),
+    "ais": PipelineDefinition(
+        name="ais",
+        module=(
+            "backend.marine_data.ais."
+            "run_aisstream_pipeline"
+        ),
+        advisory_lock_id=17003,
+    ),
 }
 
 

@@ -3,6 +3,7 @@ param(
     [ValidateSet(
         "weather",
         "ocean",
+        "ais",
         "retention-dry-run"
     )]
     [string]$Job
@@ -51,6 +52,15 @@ $moduleArguments = switch ($Job) {
             "-m",
             "backend.marine_data.automation.runner",
             "ocean"
+        )
+    }
+
+    "ais" {
+        @(
+            "-u",
+            "-m",
+            "backend.marine_data.automation.runner",
+            "ais"
         )
     }
 

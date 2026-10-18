@@ -53,6 +53,16 @@ function New-MarineTaskAction {
 
 $now = Get-Date
 
+$minutesUntilAis = 10 - ($now.Minute % 10)
+
+$aisStart = $now.AddMinutes(
+    $minutesUntilAis
+).AddSeconds(
+    -$now.Second
+).AddMilliseconds(
+    -$now.Millisecond
+)
+
 $minutesUntilWeather = 15 - ($now.Minute % 15)
 
 $weatherStart = $now.AddMinutes(
@@ -80,6 +90,12 @@ if ($retentionStart -le $now) {
     $retentionStart = $retentionStart.AddDays(1)
 }
 
+$aisTrigger = New-ScheduledTaskTrigger `
+    -Once `
+    -At $aisStart `
+    -RepetitionInterval (New-TimeSpan -Minutes 10) `
+    -RepetitionDuration (New-TimeSpan -Days 3650)
+
 $weatherTrigger = New-ScheduledTaskTrigger `
     -Once `
     -At $weatherStart `
@@ -95,6 +111,16 @@ $oceanTrigger = New-ScheduledTaskTrigger `
 $retentionTrigger = New-ScheduledTaskTrigger `
     -Daily `
     -At $retentionStart
+
+Register-ScheduledTask `
+    -TaskName "MarineVerse-AIS-ETL" `
+    -Description "Capture and load live AIS vessel data every 10 minutes." `
+    -Action (New-MarineTaskAction -Job "ais") `
+    -Trigger $aisTrigger `
+    -Settings $settings `
+    -Principal $principal `
+    -Force |
+    Out-Null
 
 Register-ScheduledTask `
     -TaskName "MarineVerse-Weather-ETL" `
@@ -127,6 +153,7 @@ Register-ScheduledTask `
     Out-Null
 
 Write-Host "MarineVerse scheduled tasks registered."
+Write-Host "AIS begins:       $aisStart"
 Write-Host "Weather begins:   $weatherStart"
 Write-Host "Ocean begins:     $oceanStart"
 Write-Host "Retention begins: $retentionStart"
