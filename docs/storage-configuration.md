@@ -53,6 +53,9 @@ Expected baseline after ports integration: 155 tests.
 - Existing raw files remain at their original locations.
 - The broader processed-data, backup, log and migration lifecycle
   is not yet implemented.
-- Cloud object storage is not implemented by this configuration.
+- Optional S3 upload support is provided separately by
+  backend/marine_data/s3_storage.py.
+- S3 synchronization, download/restore and upload integrity
+  verification are not yet implemented.
 - Direct `.env` loading is not yet verified for every entry point.
 ```
