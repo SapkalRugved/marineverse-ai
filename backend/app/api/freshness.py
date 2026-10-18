@@ -23,7 +23,7 @@ router = APIRouter(
     summary="Check marine dataset freshness",
 )
 def get_freshness() -> FreshnessResponse:
-    """Return freshness status for ports, weather, and ocean."""
+    """Return freshness status for ports, weather, ocean, and AIS."""
     try:
         report = get_data_freshness()
 

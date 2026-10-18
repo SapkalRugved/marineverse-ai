@@ -6,6 +6,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from backend.app.services.freshness import (
+    SELECT_FRESHNESS_SQL,
     build_freshness_report,
     calculate_dataset_freshness,
 )
@@ -96,6 +97,62 @@ class FreshnessServiceTests(unittest.TestCase):
 
         self.assertEqual(report["status"], "stale")
 
+
+    def test_fresh_ais_dataset(self) -> None:
+        """Classify recent AIS positions as fresh."""
+        result = calculate_dataset_freshness(
+            {
+                "dataset": "ais",
+                "latest_valid_time": (
+                    CHECKED_AT - timedelta(minutes=20)
+                ),
+                "latest_ingested_at": CHECKED_AT,
+                "last_successful_run_at": CHECKED_AT,
+            },
+            CHECKED_AT,
+        )
+
+        self.assertEqual(result["status"], "fresh")
+        self.assertEqual(
+            result["maximum_age_seconds"],
+            1800,
+        )
+
+    def test_stale_ais_dataset(self) -> None:
+        """Classify old AIS positions as stale."""
+        result = calculate_dataset_freshness(
+            {
+                "dataset": "ais",
+                "latest_valid_time": (
+                    CHECKED_AT - timedelta(minutes=31)
+                ),
+                "latest_ingested_at": CHECKED_AT,
+                "last_successful_run_at": CHECKED_AT,
+            },
+            CHECKED_AT,
+        )
+
+        self.assertEqual(result["status"], "stale")
+        self.assertEqual(result["age_seconds"], 1860.0)
+
+    def test_ais_query_uses_live_positions(self) -> None:
+        """Read freshness from live AIS positions and runs."""
+        self.assertIn(
+            "'ais'::text AS dataset",
+            SELECT_FRESHNESS_SQL,
+        )
+        self.assertIn(
+            "FROM vessel_positions",
+            SELECT_FRESHNESS_SQL,
+        )
+        self.assertIn(
+            "WHERE source = 'aisstream'",
+            SELECT_FRESHNESS_SQL,
+        )
+        self.assertIn(
+            "pipeline = 'aisstream_india'",
+            SELECT_FRESHNESS_SQL,
+        )
 
 if __name__ == "__main__":
     unittest.main()

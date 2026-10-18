@@ -15,6 +15,7 @@ FRESHNESS_THRESHOLDS_SECONDS = {
     "ports": 30 * 24 * 60 * 60,
     "weather": 30 * 60,
     "ocean": 9 * 60 * 60,
+    "ais": 30 * 60,
 }
 
 SELECT_FRESHNESS_SQL = """
@@ -31,6 +32,21 @@ FROM (
               AND status = 'success'
         ) AS last_successful_run_at
     FROM ports
+
+    UNION ALL
+
+    SELECT
+        'ais'::text AS dataset,
+        MAX(observed_at) AS latest_valid_time,
+        MAX(ingested_at) AS latest_ingested_at,
+        (
+            SELECT MAX(completed_at)
+            FROM ingestion_runs
+            WHERE pipeline = 'aisstream_india'
+              AND status = 'success'
+        ) AS last_successful_run_at
+    FROM vessel_positions
+    WHERE source = 'aisstream'
 
     UNION ALL
 

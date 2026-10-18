@@ -1,438 +1,171 @@
-\# MarineVerse Marine Data API
+# MarineVerse Marine Data API
 
+## Purpose
 
+The API exposes normalized ports, weather, ocean, and AIS vessel data stored
+in PostgreSQL/PostGIS. API requests read previously ingested data and do not
+contact external providers directly.
 
-\## Purpose
+## Data sources
 
-
-
-The Marine Data API provides one HTTP interface for querying normalized
-
-port, weather, and ocean-condition records stored in PostgreSQL/PostGIS.
-
-
-
-The API reads data already loaded by the MarineVerse ETL pipelines. It
-
-does not contact OpenStreetMap, Open-Meteo, or Copernicus Marine during
-
-each API request.
-
-
-
-\## Data provenance
-
-
-
-| Dataset | Provider | Characteristics |
-
+| Dataset | Provider | Data type |
 |---|---|---|
+| Ports | OpenStreetMap | Relatively static |
+| Weather | Open-Meteo | Near-real-time |
+| Ocean | Copernicus Marine | Analysis and forecast |
+| Vessels | AISStream | Live AIS broadcasts |
 
-| Ports | OpenStreetMap Overpass API | Real, relatively static port data |
+## Environment
 
-| Weather | Open-Meteo | Real near-real-time weather snapshots |
+Create an untracked `.env` file:
 
-| Ocean | Copernicus Marine | Modelled ocean analysis and forecast data |
-
-
-
-The API test fixtures are synthetic and are used only by mocked unit
-
-tests. They are not written to PostgreSQL.
-
-
-
-\## Environment
-
-
-
-Create a local `.env` file based on `.env.example`.
-
-
-
-```text
-
+~~~text
 PGHOST=localhost
-
 PGPORT=5432
-
 PGDATABASE=marineverse
-
 PGUSER=postgres
-
 PGPASSWORD=your-local-password
+AISSTREAM_API_KEY=your-local-key
+~~~
 
-AISSTREAM\_API\_KEY=
+Never commit `.env` or real credentials.
 
-```
+## Start the API
 
-
-
-Never commit the local `.env` file.
-
-
-
-\## Install dependencies
-
-
-
-```powershell
-
-python -m venv .venv
-
-.\\.venv\\Scripts\\Activate.ps1
-
-python -m pip install -r requirements.txt
-
-```
-
-
-
-\## Start the API
-
-
-
-```powershell
-
+~~~powershell
 python -m uvicorn backend.app.main:app `
+    --host 127.0.0.1 `
+    --port 8000 `
+    --reload
+~~~
 
-&#x20;   --host 127.0.0.1 `
+OpenAPI documentation:
 
-&#x20;   --port 8000 `
-
-&#x20;   --reload
-
-```
-
-
-
-Interactive OpenAPI documentation is available at:
-
-
-
-```text
-
+~~~text
 http://127.0.0.1:8000/docs
+~~~
 
-```
+## Operational endpoints
 
+- `GET /health`: liveness without a database dependency
+- `GET /ready`: PostgreSQL readiness
+- `GET /api/v1/freshness`: dataset freshness monitoring
 
+## Ports
 
-\## Operational endpoints
-
-
-
-\### Liveness
-
-
-
-```http
-
-GET /health
-
-```
-
-
-
-This endpoint does not depend on PostgreSQL.
-
-
-
-\### Readiness
-
-
-
-```http
-
-GET /ready
-
-```
-
-
-
-This endpoint verifies that PostgreSQL is available.
-
-
-
-\## Ports endpoint
-
-
-
-```http
-
+~~~http
 GET /api/v1/ports
+~~~
 
-```
+Filters include `port_type`, `name`, geographic bounds, and `limit` from
+1 to 500.
 
-
-
-Supported filters:
-
-
-
-\- `port\_type`
-
-\- `name`
-
-\- `minimum\_latitude`
-
-\- `maximum\_latitude`
-
-\- `minimum\_longitude`
-
-\- `maximum\_longitude`
-
-\- `limit` from 1 to 500
-
-
-
-Example:
-
-
-
-```powershell
-
+~~~powershell
 Invoke-RestMethod `
+    "http://127.0.0.1:8000/api/v1/ports?port_type=port&limit=5"
+~~~
 
-&#x20;   "http://127.0.0.1:8000/api/v1/ports?port\_type=port\&limit=5"
+## Weather
 
-```
-
-
-
-\## Weather endpoint
-
-
-
-```http
-
+~~~http
 GET /api/v1/weather
+~~~
 
-```
+Filters include source, dataset, forecast status, time range, geographic
+bounds, `latest_only`, and `limit`.
 
-
-
-Supported filters:
-
-
-
-\- `source`
-
-\- `source\_dataset`
-
-\- `is\_forecast`
-
-\- `start\_time`
-
-\- `end\_time`
-
-\- `minimum\_latitude`
-
-\- `maximum\_latitude`
-
-\- `minimum\_longitude`
-
-\- `maximum\_longitude`
-
-\- `latest\_only`
-
-\- `limit` from 1 to 500
-
-
-
-`latest\_only` defaults to `true`. The result therefore contains the
-
-latest matching weather snapshot unless historical mode is requested.
-
-
-
-Example:
-
-
-
-```powershell
-
+~~~powershell
 Invoke-RestMethod `
+    "http://127.0.0.1:8000/api/v1/weather?source=open-meteo&limit=5"
+~~~
 
-&#x20;   "http://127.0.0.1:8000/api/v1/weather?source=open-meteo\&limit=5"
+## Ocean
 
-```
-
-
-
-Historical example:
-
-
-
-```powershell
-
-Invoke-RestMethod `
-
-&#x20;   "http://127.0.0.1:8000/api/v1/weather?latest\_only=false\&limit=100"
-
-```
-
-
-
-\## Ocean endpoint
-
-
-
-```http
-
+~~~http
 GET /api/v1/ocean
+~~~
 
-```
+Filters include source, dataset, forecast status, time range, depth,
+geographic bounds, `latest_only`, `limit`, and `offset`.
 
+~~~powershell
+Invoke-RestMethod `
+    "http://127.0.0.1:8000/api/v1/ocean?limit=50"
+~~~
 
+## Vessels
+
+~~~http
+GET /api/v1/vessels
+~~~
+
+The endpoint returns one record per vessel with its newest stored position.
 
 Supported filters:
 
+- `mmsi`: nine-digit vessel identity
+- `name`: case-insensitive partial name
+- `ship_type`
+- `source`
+- `minimum_latitude`
+- `maximum_latitude`
+- `minimum_longitude`
+- `maximum_longitude`
+- `observed_after`: ISO 8601 timestamp
+- `limit` from 1 to 500
 
-
-\- `source`
-
-\- `source\_dataset`
-
-\- `is\_forecast`
-
-\- `start\_time`
-
-\- `end\_time`
-
-\- `minimum\_depth\_m`
-
-\- `maximum\_depth\_m`
-
-\- `minimum\_latitude`
-
-\- `maximum\_latitude`
-
-\- `minimum\_longitude`
-
-\- `maximum\_longitude`
-
-\- `latest\_only`
-
-\- `limit` from 1 to 5000
-
-\- `offset`
-
-
-
-The response includes:
-
-
-
-\- Eastward and northward current components
-
-\- Calculated current speed and direction
-
-\- Sea-surface temperature
-
-\- Significant wave height
-
-\- Wave direction
-
-\- Wave period
-
-\- Forecast status
-
-
-
-Example:
-
-
-
-```powershell
-
+~~~powershell
 Invoke-RestMethod `
+    "http://127.0.0.1:8000/api/v1/vessels?source=aisstream&limit=5" |
+    ConvertTo-Json -Depth 6
+~~~
 
-&#x20;   "http://127.0.0.1:8000/api/v1/ocean?minimum\_latitude=18.7\&maximum\_latitude=19.1\&minimum\_longitude=72.3\&maximum\_longitude=72.6\&limit=50"
+`latest_position` includes the observation time, coordinates, speed, course,
+heading, navigation status, source, and ingestion time.
 
-```
+A vessel without a stored position has `latest_position` set to `null`.
+Geographic and `observed_after` filters require a matching latest position.
 
+## Freshness monitoring
 
+~~~http
+GET /api/v1/freshness
+~~~
 
-Pagination example:
-
-
-
-```powershell
-
+~~~powershell
 Invoke-RestMethod `
+    "http://127.0.0.1:8000/api/v1/freshness" |
+    ConvertTo-Json -Depth 6
+~~~
 
-&#x20;   "http://127.0.0.1:8000/api/v1/ocean?limit=500\&offset=500"
+Possible states are `fresh`, `stale`, and `missing`.
 
-```
+| Dataset | Maximum age |
+|---|---:|
+| AIS | 30 minutes |
+| Weather | 30 minutes |
+| Ocean | 9 hours |
+| Ports | 30 days |
 
+AIS age uses the newest live `vessel_positions.observed_at` timestamp.
 
+## Error behavior
 
-\## Data freshness
+- Invalid parameters and reversed ranges return HTTP `422`.
+- Temporary database failures return HTTP `503`.
+- Empty queries return HTTP `200` with `count` equal to zero.
+- Internal database details are not exposed.
 
+## Testing
 
-
-The API returns the latest data currently stored in PostgreSQL.
-
-`valid\_time` indicates when a weather or ocean condition is valid, while
-
-`ingested\_at` indicates when MarineVerse loaded it.
-
-
-
-Until pipeline scheduling is configured, data is refreshed only when the
-
-corresponding ETL command is run manually.
-
-
-
-\## Error behavior
-
-
-
-\- Invalid query parameters or reversed ranges return HTTP `422`.
-
-\- Temporary database failures return HTTP `503`.
-
-\- Internal database connection details are not exposed to API clients.
-
-
-
-\## Testing
-
-
-
-Run API tests:
-
-
-
-```powershell
+~~~powershell
+python -m unittest discover `
+    -s tests `
+    -p "test_api_*.py" `
+    -v
 
 python -m unittest discover `
-
-&#x20;   -s tests `
-
-&#x20;   -p "test\_api\_\*.py" `
-
-&#x20;   -v
-
-```
-
-
-
-Run the complete test suite:
-
-
-
-```powershell
-
-python -m unittest discover `
-
-&#x20;   -s tests `
-
-&#x20;   -p "test\_\*.py" `
-
-&#x20;   -v
-
-```
-
+    -s tests `
+    -p "test_*.py" `
+    -v
+~~~
