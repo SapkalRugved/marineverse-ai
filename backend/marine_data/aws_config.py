@@ -3,7 +3,13 @@
 
 import os
 import re
+from dotenv import load_dotenv
+from backend.marine_data.database import ENVIRONMENT_FILE
 
+load_dotenv(
+    dotenv_path=ENVIRONMENT_FILE,
+    override=False,
+)
 
 def get_aws_config():
     region = os.getenv("AWS_REGION", "ap-south-1")
