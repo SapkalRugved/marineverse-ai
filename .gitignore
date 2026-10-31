@@ -65,3 +65,12 @@ logs/
 !data/raw/ais/
 data/raw/ais/*
 !data/raw/ais/.gitkeep
+# Medallion runtime products and local scheduler configuration
+data/bronze/
+data/silver/
+data/gold/
+data/catalog/
+data/locks/
+data/raw/ibtracs/
+data/raw/ports-worldwide/
+*.jobs.local.json

@@ -105,3 +105,11 @@ or existing FastAPI endpoint contracts.
 
 Objective 2 MVP implementation is in progress. The core ports, weather, ocean,
 AIS, API, and local automation foundations are operational.
+
+## Worldwide Bronze / Silver / Gold MVP
+
+The additive [worldwide platform](docs/worldwide-platform.md) publishes real
+source data into independent Digital Twin, AI Assistant and Decision Support
+marts, with immutable Bronze bundles, quality reports and read-only product APIs.
+It preserves the existing PostGIS schema, regional ETL commands and API contracts.
+See the guide for executable commands and precise source/access limitations.

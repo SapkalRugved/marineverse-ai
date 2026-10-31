@@ -1,0 +1,6 @@
+{
+  "source_url": "https://naturalearth.s3.amazonaws.com/10m_physical/ne_10m_coastline.zip",
+  "retrieved_date": "2026-10-31",
+  "source_sha256": "bfa04cdbcbef07ef90dfca1dabb48062eca29900a113df0f389303e255484017",
+  "description": "Smallest source coastline feature converted from original WGS84 shapefile to GeoJSON; no geometry alteration."
+}

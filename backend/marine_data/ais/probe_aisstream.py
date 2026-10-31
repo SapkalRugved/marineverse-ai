@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -77,11 +78,35 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def configured_bounding_boxes() -> list:
+    """Optional worldwide/custom subscription; legacy India bounds are default."""
+    configured = os.getenv("MARINEVERSE_AIS_BOUNDING_BOXES")
+    if configured is None:
+        return BOUNDING_BOXES
+    try:
+        boxes = json.loads(configured)
+        if not isinstance(boxes, list) or not boxes:
+            raise ValueError("At least one bounding box is required")
+        for box in boxes:
+            if len(box) != 2 or any(len(point) != 2 for point in box):
+                raise ValueError("Each bounding box requires two latitude/longitude pairs")
+            south, west = box[0]
+            north, east = box[1]
+            if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+                       for v in (south, west, north, east)):
+                raise ValueError("Bounding box coordinates must be finite numbers")
+            if not (-90 <= south < north <= 90 and -180 <= west < east <= 180):
+                raise ValueError("Invalid AIS bounding box; split at the antimeridian")
+        return boxes
+    except (ValueError, TypeError, KeyError) as exc:
+        raise AisProbeError("Invalid MARINEVERSE_AIS_BOUNDING_BOXES") from exc
+
+
 def build_subscription(api_key: str) -> dict[str, Any]:
     """Build the AISStream subscription without logging the key."""
     return {
         "APIKey": api_key,
-        "BoundingBoxes": BOUNDING_BOXES,
+        "BoundingBoxes": configured_bounding_boxes(),
         "FilterMessageTypes": MESSAGE_TYPES,
     }
 
@@ -146,7 +171,7 @@ def retain_capture(
         "completed_at": completed_at.isoformat(),
         "requested_duration_seconds": duration_seconds,
         "subscription": {
-            "bounding_boxes": BOUNDING_BOXES,
+            "bounding_boxes": configured_bounding_boxes(),
             "message_types": MESSAGE_TYPES,
         },
         "event_count": len(events),
