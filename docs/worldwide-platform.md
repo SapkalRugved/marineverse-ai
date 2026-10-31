@@ -186,3 +186,6 @@ whole high-resolution world NetCDF to the existing ocean transformer.
 
 The repository contains only code, docs and small real source excerpts for tests.
 No credentials, `.env` files or bulk raw/processed datasets are committed.
+
+For CI, task previews, Windows registration and IAM handoff, see
+[worldwide operations](worldwide-operations.md) when the operations PR is applied.
