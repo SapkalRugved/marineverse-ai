@@ -14,7 +14,7 @@ from backend.marine_data.platform.sources import (
 from backend.marine_data.storage import resolve_data_root, PROJECT_ROOT
 
 
-def _refresh(dataset, root=None):
+def _refresh(dataset, root=None, *, max_weather_locations=10):
     root = resolve_data_root(root)
     if dataset == "ibtracs":
         path = download_ibtracs(root)
@@ -35,6 +35,8 @@ def _refresh(dataset, root=None):
             root=root,
         )
     if dataset == "weather":
+        if type(max_weather_locations) is not int or not 1 <= max_weather_locations <= 100:
+            raise ValueError("Weather refresh requires a location limit between 1 and 100")
         from backend.marine_data.weather.retrieve_open_meteo_weather import (
             retrieve_weather,
             retain_raw_response,
@@ -57,8 +59,10 @@ def _refresh(dataset, root=None):
                             for k in ("source_id", "name", "latitude", "longitude")
                         }
                     )
+                    if len(locations) >= max_weather_locations:
+                        break
         if not locations:
-            raise ValueError("No normalized worldwide port locations available")
+            raise ValueError("No normalized port locations available")
         raw = retrieve_weather(locations)
         path = retain_raw_response(
             locations, raw, output_directory=root / "raw" / "weather"
@@ -66,6 +70,11 @@ def _refresh(dataset, root=None):
         # Record exact upstream port release in the raw envelope for lineage.
         envelope = json.loads(path.read_text(encoding="utf-8"))
         envelope["ports_release"] = report["release"]
+        envelope["location_selection"] = {
+            "source": "published_ports_release", "port_type": "port",
+            "location_count": len(locations), "maximum_locations": max_weather_locations,
+            "ports_source_url": report["source_url"],
+        }
         from backend.marine_data.platform.pipeline import atomic_json
 
         atomic_json(path, envelope)
@@ -73,20 +82,20 @@ def _refresh(dataset, root=None):
             dataset,
             path,
             source_url="https://api.open-meteo.com/v1/forecast",
-            coverage=f"Open-Meteo current model weather at {len(locations)} available OSM port coordinates; ports release {report['release']}",
+            coverage=f"Open-Meteo current model weather at {len(locations)} selected published port coordinates; bounded refresh, not worldwide; ports release {report['release']}",
             root=root,
         )
     raise ValueError("Unsupported automatic refresh source")
 
 
-def refresh(dataset, root=None):
+def refresh(dataset, root=None, *, max_weather_locations=10):
     from backend.marine_data.platform.pipeline import dataset_lock
 
     if dataset not in {"ibtracs", "ports", "weather"}:
         raise ValueError("Unsupported automatic refresh source")
     root = resolve_data_root(root)
     with dataset_lock(root, "refresh-" + dataset):
-        return _refresh(dataset, root)
+        return _refresh(dataset, root, max_weather_locations=max_weather_locations)
 
 
 def main():
@@ -94,6 +103,8 @@ def main():
     parser.add_argument("dataset", choices=("ibtracs", "ports", "weather"))
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--max-weather-locations", type=int, default=10,
+                        help="Bound weather requests to 1–100 locations (default 10)")
     args = parser.parse_args()
     load_dotenv(PROJECT_ROOT / ".env", override=False)
     if not args.execute:
@@ -108,7 +119,8 @@ def main():
             )
         )
         return 0
-    print(json.dumps(refresh(args.dataset, args.data_root)))
+    print(json.dumps(refresh(args.dataset, args.data_root,
+                             max_weather_locations=args.max_weather_locations)))
     return 0
 
 

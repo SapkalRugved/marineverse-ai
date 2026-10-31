@@ -11,10 +11,14 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgis: ['16-3.4', '18-3.6']
     timeout-minutes: 20
     services:
       postgis:
-        image: postgis/postgis:16-3.4
+        image: postgis/postgis:${{ matrix.postgis }}
         env:
           POSTGRES_DB: marineverse_test
           # Disposable isolated CI service only; no account credentials.

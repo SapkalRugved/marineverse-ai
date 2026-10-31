@@ -13,6 +13,11 @@ enable Windows scheduled jobs. No secrets or raw data are committed to GitHub.
 - Existing immutable S3 objects must match *both* size and a full streamed
   SHA-256 comparison; otherwise publication aborts rather than overwrites.
 - Uploads missing immutable objects and verifies their remote bytes via S3 GET.
+- Uses conditional create (`If-None-Match: *`) so a concurrent writer cannot be
+  overwritten between HEAD and PUT; a race aborts publication.
+- Requests AES256 encryption explicitly for every new object and catalog.
+- Pins the audited receipt, checks it against the retained immutable report,
+  rejects a changed local release, and publishes only that pinned receipt.
 - Publishes the mutable `catalog/<dataset>/current.json` only after all of
   those validations succeed.
 - Does not print source hashes, credentials, account IDs or records.
@@ -41,6 +46,16 @@ The owner should review S3 transfer cost and storage budget before execution.
 Verification GET downloads source bytes from the same S3 region; network/data
 transfer charges may apply depending on location. This can transfer several
 gigabytes for large Gold releases. Do not run from CI or an automated schedule.
+
+The default combined upload/verification byte budget is 1 GiB. Preview reports
+`maximum_transfer_bytes` and `within_transfer_budget` without contacting AWS.
+Execution stops before any AWS call when the planned transfer exceeds the
+budget. After reviewing the preview, supply an explicit `--max-transfer-bytes`
+limit for a larger release. The freshly verified full NOAA release requires
+about **5.49 GB** of logical PUT+GET transfer including a new Bronze copy.
+This estimate excludes SDK/network retries and is not a currency price cap.
+Conditional single PUT supports files up to 5 GiB; larger individual files
+are rejected. IAM/bucket permissions are never changed to make a call pass.
 
 The existing direct `bronze/cyclones/ibtracs/ibtracs.ALL.list.v04r01.csv`
 is a **different legacy S3 key** from the new content-addressed

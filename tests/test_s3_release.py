@@ -47,15 +47,24 @@ class MemoryS3:
         return {"ContentLength": len(self.objects[Key])}
 
     def get_object(self, *, Bucket, Key):
-        return {"Body": Body(self.objects[Key])}
+        return {"Body": Body(self.objects[Key]), "ContentLength": len(self.objects[Key])}
 
     def upload_file(self, source, bucket, key):
         self.objects[key] = Path(source).read_bytes()
         self.uploads += 1
 
-    def put_object(self, *, Bucket, Key, Body, ContentType):
-        self.objects[Key] = Body
-        self.puts += 1
+    def put_object(self, *, Bucket, Key, Body, ServerSideEncryption,
+                   ContentType=None, ContentLength=None, IfNoneMatch=None):
+        assert ServerSideEncryption == "AES256"
+        if IfNoneMatch is not None:
+            assert IfNoneMatch == "*"
+            assert Key not in self.objects
+            self.objects[Key] = Body.read()
+            assert len(self.objects[Key]) == ContentLength
+            self.uploads += 1
+        else:
+            self.objects[Key] = Body
+            self.puts += 1
 
 
 def seed(root):
@@ -121,3 +130,51 @@ def test_cannot_replace_object_with_wrong_size(tmp_path):
 def test_refuse_bad_bucket(tmp_path):
     with pytest.raises(ValueError, match="bucket"):
         publish(tmp_path, "ibtracs", "../unsafe")
+
+
+def test_budget_blocks_before_any_aws_operation(tmp_path):
+    seed(tmp_path)
+    from unittest.mock import Mock
+    client = Mock()
+    with pytest.raises(ValueError, match="transfer byte budget"):
+        publish(tmp_path, "ibtracs", "private-bucket", execute=True,
+                client=client, max_transfer_bytes=1)
+    assert client.mock_calls == []
+
+
+def test_catalog_change_during_upload_blocks_pointer(tmp_path):
+    import json
+    seed(tmp_path)
+    client = MemoryS3()
+    original = client.put_object
+
+    def change_pointer(**kwargs):
+        result = original(**kwargs)
+        pointer = tmp_path / "catalog/ibtracs/current.json"
+        receipt = json.loads(pointer.read_text())
+        receipt["release"] = "another-release"
+        pointer.write_text(json.dumps(receipt))
+        return result
+
+    client.put_object = change_pointer
+    with pytest.raises(ValueError, match="Current release changed"):
+        publish(tmp_path, "ibtracs", "private-bucket", execute=True, client=client)
+    assert "catalog/ibtracs/current.json" not in client.objects
+
+
+def test_concurrent_remote_create_is_not_overwritten(tmp_path):
+    seed(tmp_path)
+    client = MemoryS3()
+    original = client.put_object
+
+    def race(**kwargs):
+        if kwargs.get("IfNoneMatch"):
+            client.objects[kwargs["Key"]] = b"concurrent-writer"
+            raise RuntimeError("PreconditionFailed")
+        return original(**kwargs)
+
+    client.put_object = race
+    with pytest.raises(RuntimeError, match="PreconditionFailed"):
+        publish(tmp_path, "ibtracs", "private-bucket", execute=True, client=client)
+    assert client.puts == 0
+    assert all(data == b"concurrent-writer" for data in client.objects.values())
