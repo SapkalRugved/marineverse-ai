@@ -16,8 +16,9 @@ The existing integration tests delete their own test rows, so do not point them
 at a production database. Supply existing local PostgreSQL environment settings;
 no password or `.env` belongs in Git. The host used for implementation had no
 PostgreSQL binaries/service, and package installation was unavailable; local
-172 passing tests therefore exclude those 17 integration tests. CI results must
-be checked separately and are not assumed to pass.
+172 passing tests therefore exclude those 17 integration tests. The first remote CI run passed all 189 tests and 22 subtests, including those
+17 database checks. See `worldwide-verification.json` for the tested commit;
+subsequent heads must pass CI separately.
 
 ## Practical Windows scheduling
 

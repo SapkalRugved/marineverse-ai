@@ -52,7 +52,14 @@ are removed after use. Unchanged input reuses Bronze bytes; each replay creates
 a new release, with stable logical IDs. No automatic deletion of old releases.
 Plan retention explicitly before frequent full-archive rebuilds.
 
-Reject threshold defaults to 5% of rows read. Zero accepted records always
+`read` counts normalized candidates plus adapter rejections/duplicates. Legacy
+weather/ocean/AIS reports also include `source_quality` with actual source counts,
+rejections, duplicates and ignored events. An AIS event can produce both a vessel
+and a position: candidate counts must not be mistaken for source event counts.
+Legacy successful records have NULL `_source_row` because their transformers do
+not expose original indices; stable record IDs and Bronze bundles provide lineage.
+
+Reject threshold defaults to 5% of source rows/events read where available. Zero accepted records always
 fails. Tune `--max-rejection-fraction` explicitly for known masked ocean cells;
 review reports rather than treating masked land cells as bad ocean observations.
 World coverage describes **available source records**, never a guarantee of
