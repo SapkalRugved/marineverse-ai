@@ -53,5 +53,13 @@
     "ioc": "deferred pending approval"
   },
   "schema_changes": false,
-  "existing_api_contract_changes": false
+  "existing_api_contract_changes": false,
+  "ci": {
+    "url": "https://github.com/SapkalRugved/marineverse-ai/actions/runs/41182054876",
+    "commit": "b10ca818b23bd95fdc5b79e5a6c77ea27caa3b25",
+    "passed": 189,
+    "subtests_passed": 22,
+    "postgis_integration_passed": 17,
+    "note": "Full CI passed before final legacy source-count/row-lineage correction; new head CI is checked separately."
+  }
 }
