@@ -7,6 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from backend.marine_data.platform.adapters import DATASETS
 from backend.marine_data.storage import resolve_data_root
+from backend.marine_data.platform.verify import load_receipt, confined
 
 router = APIRouter(prefix="/api/v1/products", tags=["Gold products"])
 Dataset = Literal[
@@ -31,9 +32,9 @@ def catalog():
         for dataset in DATASETS:
             path = root / "catalog" / dataset / "current.json"
             if path.is_file():
-                products.append(json.loads(path.read_text(encoding="utf-8")))
+                products.append(load_receipt(root, dataset))
         return {"datasets": products, "worldwide_live_coverage": False}
-    except (OSError, ValueError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         raise HTTPException(
             503, "Product catalog is temporarily unavailable."
         ) from None
@@ -51,11 +52,9 @@ def records(
     if not pointer.is_file():
         raise HTTPException(404, "No published release for this dataset.")
     try:
-        report = json.loads(pointer.read_text(encoding="utf-8"))
+        report = load_receipt(root, dataset)
         product = report["products"][mart]
-        path = (root / product["path"]).resolve()
-        if not path.is_relative_to((root / "gold").resolve()):
-            raise ValueError("Product escapes Gold storage")
+        path = confined(root.resolve(), product["path"], f"gold/{dataset}/{report['release']}")
         with path.open(encoding="utf-8") as stream:
             page = [json.loads(line) for line in islice(stream, offset, offset + limit)]
         return {
@@ -71,5 +70,5 @@ def records(
             "coverage": report["coverage"],
             "records": page,
         }
-    except (OSError, ValueError, KeyError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         raise HTTPException(503, "Gold product is temporarily unavailable.") from None

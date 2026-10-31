@@ -113,3 +113,5 @@ source data into independent Digital Twin, AI Assistant and Decision Support
 marts, with immutable Bronze bundles, quality reports and read-only product APIs.
 It preserves the existing PostGIS schema, regional ETL commands and API contracts.
 See the guide for executable commands and precise source/access limitations.
+
+Read-only [release integrity and consumer verification](docs/objective2-integrity-verification.md) checks retained hashes, counts, lineage and API pagination without changing scheduling or AWS permissions.
