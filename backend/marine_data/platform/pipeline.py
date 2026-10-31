@@ -297,6 +297,9 @@ def run(
                 ) as quarantine,
             ):
                 for row, record, error in transform(bronze, dataset, stamp):
+                    if record is not None and "_adapter_quality" in record:
+                        report["source_quality"] = record["_adapter_quality"]
+                        continue
                     report["read"] += 1
                     if error:
                         key = (
@@ -358,7 +361,9 @@ def run(
                         report["maximum_time"] = max(
                             report["maximum_time"] or time, time
                         )
-            report["rejection_fraction"] = report["rejected"] / max(1, report["read"])
+            report["rejection_fraction"] = report["rejected"] / max(
+                1, report.get("source_quality", {}).get("records_read", report["read"])
+            )
             if (
                 not report["accepted"]
                 or report["rejection_fraction"] > max_rejection_fraction

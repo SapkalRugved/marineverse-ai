@@ -158,8 +158,26 @@ def transform(path: Path, dataset: str, stamp: datetime):
         rejected, duplicates = result.rejected_events, result.duplicates_removed
     else:
         raise ValueError("Unknown dataset")
-    for index, record in enumerate(records, 1):
-        yield index, asdict(record), None
+    source_read = getattr(
+        result,
+        "source_records_read",
+        getattr(result, "source_grid_cells", getattr(result, "source_events_read", 0)),
+    )
+    yield (
+        None,
+        {
+            "_adapter_quality": {
+                "records_read": source_read,
+                "rejected": rejected,
+                "duplicates": duplicates,
+                "ignored": getattr(result, "ignored_events", 0),
+            }
+        },
+        None,
+    )
+    for record in records:
+        # Legacy transformers return normalized records, not original row indices.
+        yield None, asdict(record), None
     # Existing transformers expose aggregate rejections, not rejected row identities.
     for _ in range(rejected):
         yield None, None, "existing transformer rejected record (aggregate only)"

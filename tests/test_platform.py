@@ -227,3 +227,36 @@ def test_bronze_checksum_tampering_fails_closed(tmp_path):
         json.loads((tmp_path / "catalog/ibtracs/current.json").read_text())["release"]
         == result["release"]
     )
+
+
+def test_legacy_ais_source_counts_are_not_output_counts(tmp_path):
+    """Isolated mock: one AIS event expands to a vessel and position output."""
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+    from backend.marine_data.ais.transformer import VesselRecord, VesselPositionRecord
+    from backend.marine_data.platform.adapters import transform
+
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    # Synthetic unit-test objects only; never used in real-data products.
+    vessel = VesselRecord(123456789, None, None, None, None, None, "aisstream", stamp)
+    position = VesselPositionRecord(
+        123456789, stamp, 0, 0, None, None, None, None, "aisstream", stamp
+    )
+    result = SimpleNamespace(
+        source_events_read=1,
+        vessel_records=(vessel,),
+        position_records=(position,),
+        rejected_events=0,
+        ignored_events=1,
+        duplicates_removed=0,
+    )
+    path = tmp_path / "mock_capture.json"
+    path.write_text("{}")
+    with patch(
+        "backend.marine_data.ais.transformer.transform_capture", return_value=result
+    ):
+        rows = list(transform(path, "ais", stamp))
+    assert rows[0][1]["_adapter_quality"]["records_read"] == 1
+    assert rows[0][1]["_adapter_quality"]["ignored"] == 1
+    assert len(rows[1:]) == 2
+    assert all(row[0] is None for row in rows[1:])
