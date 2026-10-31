@@ -1,7 +1,6 @@
 {
   "verification_date": "2026-10-31",
   "global_ibtracs": {
-    "source_sha256": "cc2f39b3980ef0cbb5bdd2143e2827804fce9dfa002fc372918775271b6319b7",
     "source_bytes": 333165979,
     "read": 730378,
     "accepted": 730378,
@@ -35,8 +34,7 @@
   "coastline": {
     "read": 4133,
     "accepted": 4133,
-    "rejected": 0,
-    "source_sha256": "bfa04cdbcbef07ef90dfca1dabb48062eca29900a113df0f389303e255484017"
+    "rejected": 0
   },
   "tests": {
     "passed": 172,
@@ -61,5 +59,6 @@
     "subtests_passed": 22,
     "postgis_integration_passed": 17,
     "note": "Full CI passed before final legacy source-count/row-lineage correction; new head CI is checked separately."
-  }
+  },
+  "security_note": "Original source checksums are retained in private local quality receipts; this public summary excludes local source fingerprints."
 }
