@@ -1,0 +1,2 @@
+# Optional dependencies for worldwide IBTrACS Silver export.
+pyarrow>=17,<24
