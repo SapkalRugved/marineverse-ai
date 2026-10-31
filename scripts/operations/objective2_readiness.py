@@ -84,11 +84,13 @@ def check_aws(profile: str, region: str) -> dict:
         return {"ready": False, "reason": "AWS session missing, expired or denied"}
     try:
         arn = json.loads(proc.stdout)["Arn"]
+        if not isinstance(arn, str):
+            raise ValueError("Invalid identity")
     except (ValueError, KeyError, TypeError):
         return {"ready": False, "reason": "Could not parse identity response"}
     # Never use root for MarineVerse uploads. Avoid returning account identifiers.
     return {
-        "ready": ":user/marineverse-data-engineer" in arn and not arn.endswith(":root"),
+        "ready": arn.endswith(":user/marineverse-data-engineer"),
         "principal_kind": "iam_user" if ":user/" in arn else "not_iam_user",
         "expected_user": arn.endswith(":user/marineverse-data-engineer"),
     }

@@ -170,7 +170,7 @@ def retrieve_ports(root, size=30):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("source", choices=("ibtracs", "ports"))
+    parser.add_argument("source", choices=("ibtracs", "ports", "ports-wpi"))
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--data-root", type=Path)
     parser.add_argument(
@@ -188,15 +188,18 @@ def main():
                     if args.source == "ibtracs"
                     else None,
                     "tiles": tiles(args.tile_size) if args.source == "ports" else [],
+                    "maximum_download_bytes": 20 * 1024 ** 2 if args.source == "ports-wpi" else None,
                 }
             )
         )
         return 0
-    path = (
-        download_ibtracs(args.data_root, args.period)
-        if args.source == "ibtracs"
-        else retrieve_ports(args.data_root, args.tile_size)
-    )
+    if args.source == "ports-wpi":
+        from backend.marine_data.platform.wpi import download
+        path = download(resolve_data_root(args.data_root))
+    elif args.source == "ibtracs":
+        path = download_ibtracs(args.data_root, args.period)
+    else:
+        path = retrieve_ports(args.data_root, args.tile_size)
     print(path)
     return 0
 

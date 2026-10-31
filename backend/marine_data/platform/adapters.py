@@ -115,6 +115,10 @@ def transform(path: Path, dataset: str, stamp: datetime):
         yield from ibtracs_rows(path)
         return
     if dataset == "ports":
+        if path.suffix.lower() == ".csv":
+            from backend.marine_data.platform.wpi import rows
+            yield from rows(path, stamp)
+            return
         from backend.marine_data.ports.transformer import (
             map_element_to_port,
             TransformationError,

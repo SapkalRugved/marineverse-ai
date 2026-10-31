@@ -15,6 +15,10 @@ By default, the script performs **read-only local checks**. With `--check-aws`, 
 
 It reports whether each local source file exists and whether all three Gold product files are present for each dataset's latest catalog receipt. A local product receipt **does not prove the file is deployed to AWS**, complete worldwide coverage, or consumer authorization.
 
+For full file integrity, S3 full-content comparison and bounded API checks, see
+[release verification](objective2-integrity-verification.md). Presence checks alone
+are insufficient. Keep the four intentionally disabled Windows tasks disabled.
+
 ## Completion gates
 
 1. Reconcile the owner's unpublished local branch before pulling; **do not** reset, force-clean, overwrite local modifications or commit downloaded data. Verify locally with `git status` and `git branch --show-current`.
