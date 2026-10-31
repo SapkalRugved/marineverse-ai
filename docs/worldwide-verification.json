@@ -1,0 +1,57 @@
+{
+  "verification_date": "2026-10-31",
+  "global_ibtracs": {
+    "source_sha256": "cc2f39b3980ef0cbb5bdd2143e2827804fce9dfa002fc372918775271b6319b7",
+    "source_bytes": 333165979,
+    "read": 730378,
+    "accepted": 730378,
+    "rejected": 0,
+    "duplicates": 0,
+    "minimum_time": "1842-10-25T03:00:00+00:00",
+    "maximum_time": "2026-10-29T00:00:00+00:00",
+    "missing_values": {
+      "pressure_hpa": 556347,
+      "wind_speed_mps": 560035,
+      "wmo_agency": 498052
+    },
+    "api_checks": {
+      "objective1": {
+        "status_code": 200,
+        "page_count": 2,
+        "total": 730378
+      },
+      "objective3": {
+        "status_code": 200,
+        "page_count": 2,
+        "total": 730378
+      },
+      "objective4": {
+        "status_code": 200,
+        "page_count": 2,
+        "total": 526838
+      }
+    }
+  },
+  "coastline": {
+    "read": 4133,
+    "accepted": 4133,
+    "rejected": 0,
+    "source_sha256": "bfa04cdbcbef07ef90dfca1dabb48062eca29900a113df0f389303e255484017"
+  },
+  "tests": {
+    "passed": 172,
+    "subtests_passed": 22,
+    "postgis_integration_not_executable_here": 17
+  },
+  "live_access": {
+    "noaa": "download and full processing succeeded",
+    "natural_earth": "download and full coastline import succeeded",
+    "overpass": "Singapore-area POST returned HTTP 406; full world acquisition not executed",
+    "copernicus": "no provider credentials available",
+    "aisstream": "no provider credentials available",
+    "aws": "no calls attempted; local IAM renewal required",
+    "ioc": "deferred pending approval"
+  },
+  "schema_changes": false,
+  "existing_api_contract_changes": false
+}

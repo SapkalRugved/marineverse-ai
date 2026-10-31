@@ -26,3 +26,5 @@ app.include_router(ocean_router)
 app.include_router(ports_router)
 app.include_router(weather_router)
 app.include_router(vessels_router)
+from backend.app.api.products import router as products_router
+app.include_router(products_router)

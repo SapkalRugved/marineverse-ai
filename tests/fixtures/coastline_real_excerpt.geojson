@@ -1,0 +1,1 @@
+{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {"featurecla": "Coastline", "scalerank": 6, "min_zoom": 6.0}, "geometry": {"type": "LineString", "coordinates": [[144.4482528000001, 43.94220612200007], [144.44898522200003, 43.94204336100006], [144.4550887380001, 43.94220612200007], [144.4482528000001, 43.94220612200007]]}}]}

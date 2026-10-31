@@ -1,0 +1,6 @@
+{
+  "source_url": "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.last3years.list.v04r01.csv",
+  "retrieved_date": "2026-10-31",
+  "source_sha256": "f4b8eb58f5f4ac853f907d123d93215ea709e99c57142454cc67f9114c30143a",
+  "description": "Unmodified selected source rows covering NA basin, missing wind and dateline longitude. Malformed inputs in tests are explicit mutations."
+}
