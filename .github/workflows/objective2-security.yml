@@ -1,0 +1,22 @@
+name: Objective 2 public repository safety
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check tracked file hygiene (no secret values printed)
+        run: python scripts/security/check_tracked_files.py
+      - name: Unit-test readiness guard
+        run: python -m unittest discover -s tests -p test_objective2_readiness.py -v
