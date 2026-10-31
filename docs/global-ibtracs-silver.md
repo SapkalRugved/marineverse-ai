@@ -10,19 +10,11 @@
 
 ## Run on Windows PowerShell, from repository root
 
-```powershell
+\`\`\`powershell
 python -m pip install -r requirements-silver.txt
 python -m unittest discover -s tests -p test_ibtracs_silver.py -v
-python -m backend.marine_data.cyclones.ibtracs_silver \
-    --input data/raw/cyclones/ibtracs/ibtracs.ALL.list.v04r01.csv \
-    --output data/processed/cyclones/ibtracs/global_cyclone_tracks.parquet
-```
-
-PowerShell requires **one line** for the final `python -m` command above (or a PowerShell backtick instead of the displayed backslashes):
-
-```powershell
-python -m backend.marine_data.cyclones.ibtracs_silver --input .\data\raw\cyclones\ibtracs\ibtracs.ALL.list.v04r01.csv --output .\data\processed\cyclones\ibtracs\global_cyclone_tracks.parquet
-```
+python -m backend.marine_data.cyclones.ibtracs_silver --input "data/raw/cyclones/ibtracs/ibtracs.ALL.list.v04r01.csv" --output "data/processed/cyclones/ibtracs/global_cyclone_tracks.parquet"
+\`\`\`
 
 The importer streams rows in batches and writes a compressed Parquet dataset without loading the entire CSV into memory. It skips the IBTrACS units row, normalizes longitudes to [-180, 180), converts WMO wind from knots to m/s, keeps pressure in hPa, and stores UTC-aware timestamps. Missing wind/pressure remain null. Invalid rows are rejected and counted in `quality_report.json` (first 10 rejection examples only).
 
